@@ -44,7 +44,7 @@ class LLM:
                 uncached_prompts, cls._model_name, cls._mgt, cls._batch_size, temperature=temperature,
                 system_message=system_message, histories=histories, use_parallel=use_chat_api, show_progress=show_progress)
             assert len(uncached_prompts) == len(results)
-            result_texts = []
+            result_texts: List[str] = []
             for prompt, result in zip(uncached_prompts, results):
                 result_text = result["message"]["content"] if use_chat_api else result["text"]
                 if use_cache:

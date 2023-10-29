@@ -4,6 +4,8 @@ import torch
 from torch.utils.data import Dataset
 import numpy as np
 
+from utils import device
+
 USE_LIKERT = False
 
 if USE_LIKERT:
@@ -25,11 +27,11 @@ def format_input(row: Union[dict, pd.Series], feedback: str = None):
         f"Question: {row['question'].strip()}\n" +\
         f"Solution: {str(row['explanation']).strip()}\n" +\
         f"Incorrect Answer: {str(row['distractor']).strip()}\n" +\
-        f"Feedback: {feedback.strip()}"
+        f"Feedback: {str(feedback).strip()}"
     # return f"Question: {row['question'].strip()}\n" +\
     #     f"Correct Answer: {str(row['correct_answer']).strip()}\n" +\
     #     f"Incorrect Answer: {str(row['distractor']).strip()}\n" +\
-    #     f"Feedback: {feedback.strip()}"
+    #     f"Feedback: {str(feedback).strip()}"
 
 def format_input_enc(row: Union[dict, pd.Series]):
     return "Given a question, its solution, the incorrect answer a student gave, and the feedback given to the student, evaluate the feedback.\n" +\
@@ -75,7 +77,8 @@ class RewardModelDataset(Dataset):
             {
                 "input": format_input_enc(row) if enc_dec else format_input(row),
                 "decoder_input": format_input_dec(row) if enc_dec else None,
-                "label": torch.Tensor([row[label] for label in LABELS])
+                "label": torch.Tensor([row[label] for label in LABELS]),
+                "method": row["method"]
             }
             for _, row in data.iterrows()
         ]
@@ -98,6 +101,7 @@ class RewardModelCollator:
         result = {
             **tokenized_inputs,
             "labels": torch.stack([sample["label"] for sample in batch]),
+            "methods": [sample["method"] for sample in batch]
         }
         if self.enc_dec:
             tokenized_decoder_inputs = self.tokenizer(

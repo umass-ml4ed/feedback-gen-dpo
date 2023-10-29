@@ -44,7 +44,7 @@ class T5Classifier(T5PreTrainedModel):
         self.post_init()
         self.model_parallel = False
 
-    def forward(self, input_ids, attention_mask, labels = None):
+    def forward(self, input_ids, attention_mask, labels = None, **kwargs):
         model_outputs = self.transformer(input_ids=input_ids, attention_mask=attention_mask)
         seq_lens = attention_mask.sum(dim=1)
         masked_hidden_states = model_outputs.last_hidden_state * attention_mask.unsqueeze(2)
@@ -77,7 +77,7 @@ class T5ClassifierWDecoder(T5PreTrainedModel):
         self.post_init()
         self.model_parallel = False
 
-    def forward(self, input_ids, attention_mask, decoder_input_ids, decoder_attention_mask, labels = None):
+    def forward(self, input_ids, attention_mask, decoder_input_ids, decoder_attention_mask, labels = None, **kwargs):
         decoder_input_ids = nn.functional.pad(decoder_input_ids, (1, 0), value=self.config.decoder_start_token_id)
         decoder_attention_mask = nn.functional.pad(decoder_attention_mask, (1, 0), value=1)
         model_output = self.transformer(
@@ -104,7 +104,7 @@ class EnsembleModel(nn.Module):
         self.models = models
         self.loss_fn = nn.BCEWithLogitsLoss()
 
-    def forward(self, input_ids, attention_mask, labels = None):
+    def forward(self, input_ids, attention_mask, labels = None, **kwargs):
         all_logits = [
             model(input_ids, attention_mask, labels=labels).logits
             for model in self.models
