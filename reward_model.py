@@ -5,11 +5,10 @@ from transformers import AutoModelForSequenceClassification, AutoTokenizer, T5En
 from transformers.modeling_outputs import SequenceClassifierOutput
 from peft import LoraConfig, PeftModel, get_peft_model, prepare_model_for_kbit_training
 
-from reward_model_dataset import LABELS
+from reward_model_dataset import LABELS, format_input, USE_LIKERT
 from utils import device
 
 peft_config = LoraConfig(
-    # target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
     modules_to_save=["score"],
     r=16,
     lora_alpha=16,
@@ -19,10 +18,6 @@ peft_config = LoraConfig(
 )
 
 bnb_config = BitsAndBytesConfig(
-    # load_in_4bit=True,
-    # bnb_4bit_quant_type="nf4",
-    # bnb_4bit_compute_dtype="float16",
-    # bnb_4bit_use_double_quant=False,
     llm_int8_skip_modules=["score"],
     load_in_8bit=True,
 )
@@ -162,3 +157,34 @@ def get_ensemble(model_names: List[str], base_model: str, tokenizer, enc_dec: bo
         for model_name in model_names
     ]
     return EnsembleModel(models)
+
+def get_check_correct_batch_fn(model_name: str, base_model: str, test: bool):
+    use_t5_decoder = False
+    enc_dec = ("t5" in base_model) and use_t5_decoder
+    tokenizer = get_tokenizer(base_model)
+    rm = get_ensemble(model_name.split(","), base_model, tokenizer, enc_dec, True)
+    rm.eval()
+
+    def check_correct_batch(src_meta_datas: List[dict], pred_texts: List[str]):
+        nonlocal tokenizer, rm
+
+        with torch.no_grad():
+            batch_size = 4
+            all_scores = []
+            for batch_start_idx in range(0, len(pred_texts), batch_size):
+                meta_data_batch = src_meta_datas[batch_start_idx : batch_start_idx + batch_size]
+                pred_text_batch = pred_texts[batch_start_idx : batch_start_idx + batch_size]
+                inputs = tokenizer(
+                    [format_input(meta_data, pred_text) for meta_data, pred_text in zip(meta_data_batch, pred_text_batch)],
+                    padding=True, truncation=True, return_tensors="pt"
+                ).to(device)
+                logits = rm(**inputs).logits
+                scores = torch.sigmoid(logits)
+                if not USE_LIKERT:
+                    scores[:, :2] = 1 - scores[:, :2]
+                if not test:
+                    scores = scores[:, 0] * scores.mean(dim=1)
+                all_scores.append(scores)
+        return torch.concat(all_scores).cpu()
+
+    return check_correct_batch

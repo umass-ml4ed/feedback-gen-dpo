@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from reward_model import get_tokenizer, get_reward_model, get_ensemble
 from reward_model_dataset import load_dataset, RewardModelDataset, RewardModelCollator, LABELS, USE_LIKERT
-from utils import initialize_seeds, device
+from utils import initialize_seeds, device, bool_type
 
 def _compute_metrics(predictions, labels):
     invalid_label_idx = np.any(labels == 0.5, axis=1)
@@ -69,9 +69,6 @@ def test_loop(model, collator, enc_dec, args):
 def compute_metrics(eval_pred):
     predictions, labels = eval_pred
     return _compute_metrics(predictions, labels)
-
-def bool_type(x: str):
-    return x != "0"
 
 def main():
     initialize_seeds(221)

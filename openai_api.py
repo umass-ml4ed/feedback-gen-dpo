@@ -47,7 +47,6 @@ def get_parallel_responses(prompts: List[str], model: str, max_tokens: int, temp
 def get_responses(prompts: List[str], model="code-davinci-002", max_tokens=400, temperature=0,
                   system_message=None, histories=None, logprobs=None, echo=False):
     global delay_time, cur_key_idx
-    # import pdb; pdb.set_trace()
 
     # Wait for rate limit
     time.sleep(delay_time)

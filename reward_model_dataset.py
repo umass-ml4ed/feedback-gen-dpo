@@ -4,8 +4,6 @@ import torch
 from torch.utils.data import Dataset
 import numpy as np
 
-from utils import device
-
 USE_LIKERT = False
 
 if USE_LIKERT:
@@ -28,10 +26,6 @@ def format_input(row: Union[dict, pd.Series], feedback: str = None):
         f"Solution: {str(row['explanation']).strip()}\n" +\
         f"Incorrect Answer: {str(row['distractor']).strip()}\n" +\
         f"Feedback: {str(feedback).strip()}"
-    # return f"Question: {row['question'].strip()}\n" +\
-    #     f"Correct Answer: {str(row['correct_answer']).strip()}\n" +\
-    #     f"Incorrect Answer: {str(row['distractor']).strip()}\n" +\
-    #     f"Feedback: {str(feedback).strip()}"
 
 def format_input_enc(row: Union[dict, pd.Series]):
     return "Given a question, its solution, the incorrect answer a student gave, and the feedback given to the student, evaluate the feedback.\n" +\
@@ -44,6 +38,32 @@ def format_input_dec(row: Union[dict, pd.Series], feedback: str = None):
         feedback = str(row["feedback"])
     return f"Feedback: {feedback.strip()}"
 
+def add_mismatch_outer_samples(data: pd.DataFrame, src_data: pd.DataFrame, mismatch_rate: int):
+    # Add mismatched feedback from across questions
+    for _ in range(mismatch_rate):
+        mismatch_samples = src_data.copy()
+        mismatch_samples["method"] = "mismatch_outer"
+        mismatch_samples["feedback"] = mismatch_samples["feedback"].sample(frac=1).values
+        mismatch_samples["incorrect"] = 1.0
+        for label in LABELS[1:]:
+            mismatch_samples[label] = 0.0
+        data = pd.concat([data, mismatch_samples])
+    return data
+
+def add_mismatch_inner_samples(data: pd.DataFrame, src_data: pd.DataFrame):
+    # Add mismatched feedback within questions
+    idxs = np.arange(len(src_data))
+    for offset in range(1, 3):
+        mismatch_samples = src_data.copy()
+        mismatch_samples["method"] = "mismatch_inner"
+        target_idxs = idxs - idxs % 3 + (idxs + offset) % 3
+        mismatch_samples["feedback"] = src_data.iloc[target_idxs]["feedback"].values
+        mismatch_samples["incorrect"] = 1.0
+        for label in LABELS[1:]:
+            mismatch_samples[label] = 0.0
+        data = pd.concat([data, mismatch_samples])
+    return data
+
 class RewardModelDataset(Dataset):
     def __init__(self, data: pd.DataFrame, src_data: pd.DataFrame, enc_dec: bool, mismatch_rate: int, use_mismatch_intra: bool):
         super().__init__()
@@ -52,27 +72,10 @@ class RewardModelDataset(Dataset):
         # might also want to round up .5 suggestions to 1 since hints can be good (look at this)
 
         # Add mismatched feedback from across questions
-        for _ in range(mismatch_rate):
-            # mismatch_samples = data[data["method"] == "gold"].copy()
-            mismatch_samples = src_data.copy()
-            mismatch_samples["method"] = "mismatch_outer"
-            mismatch_samples["feedback"] = mismatch_samples["feedback"].sample(frac=1).values
-            mismatch_samples["incorrect"] = 1.0
-            for label in LABELS[1:]:
-                mismatch_samples[label] = 0.0
-            data = pd.concat([data, mismatch_samples])
+        data = add_mismatch_outer_samples(data, src_data, mismatch_rate)
         # Add mismatched feedback within questions
         if use_mismatch_intra:
-            idxs = np.arange(len(src_data))
-            for offset in range(1, 3):
-                mismatch_samples = src_data.copy()
-                mismatch_samples["method"] = "mismatch_inner"
-                target_idxs = idxs - idxs % 3 + (idxs + offset) % 3
-                mismatch_samples["feedback"] = src_data.iloc[target_idxs]["feedback"].values
-                mismatch_samples["incorrect"] = 1.0
-                for label in LABELS[1:]:
-                    mismatch_samples[label] = 0.0
-                data = pd.concat([data, mismatch_samples])
+            data = add_mismatch_inner_samples(data, src_data)
         self.data = [
             {
                 "input": format_input_enc(row) if enc_dec else format_input(row),

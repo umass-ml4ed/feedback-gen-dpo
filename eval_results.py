@@ -5,7 +5,7 @@ import evaluate
 
 from reward_model_dataset import LABELS, USE_LIKERT
 from create_reward_dataset import annotate_with_llm
-from train_reticl import get_check_correct_batch_fn
+from reward_model import get_check_correct_batch_fn
 from llm import LLMCM
 from utils import initialize_seeds
 
@@ -15,7 +15,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("result_filename", type=str, help="Result file to evaluate")
     parser.add_argument("--metric", type=str, choices=["llm", "rm", "ref"], help="Evaluation metric to use")
-    parser.add_argument("--src", type=str, choices=["og", "icl", "reticl"], help="Source of result file")
+    parser.add_argument("--src", type=str, choices=["og", "icl", "reticl", "ft"], help="Source of result file")
     parser.add_argument("--rm_name", type=str, default="reward_model", help="Reward model name")
     parser.add_argument("--rm_base", type=str, default="google/flan-t5-xl", help="Reward model base")
     parser.add_argument("--model", default="gpt-4", help="Inference model for LLM evaluation")
@@ -33,9 +33,12 @@ def main():
         df = og_df.copy()
     if args.src == "icl":
         df["feedback"] = df["generated_feedback"]
+    if args.src == "ft":
+        df["feedback"] = df["prediction"]
+        df["gen_prompt"] = df["prompt"]
 
     # if args.metric == "llm":
-    #     df = df.sample(n=50)
+    #     df = df.sample(n=100)
 
     labels = LABELS if USE_LIKERT else ["correct"] + LABELS[1:]
 
@@ -50,6 +53,7 @@ def main():
             for label in labels:
                 print(f"{label}: {df[label].mean():.2f}")
             score = df[labels[0]] * sum([df[label] for label in labels]) / len(labels)
+            df["score"] = score
             print(f"Score: {score.mean():.2f}")
     elif args.metric == "rm":
         check_correct_batch = get_check_correct_batch_fn(args.rm_name, args.rm_base, True)
@@ -59,6 +63,7 @@ def main():
             df[label] = scores[:, label_idx]
             print(f"{label}: {scores[:, label_idx].mean():.2f}")
         score = scores[:, 0] * scores.mean(dim=1)
+        df["score"] = score
         print(f"Score: {score.mean():.2f}")
     elif args.metric == "ref":
         og_df = pd.read_csv("data/raw/eedi_expanded_test.csv")

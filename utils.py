@@ -13,3 +13,6 @@ def initialize_seeds(seed_num: int):
     if torch.cuda.is_available():
         torch.cuda.manual_seed(seed_num)
         torch.cuda.manual_seed_all(seed_num)
+
+def bool_type(x: str):
+    return x != "0"
