@@ -1,7 +1,6 @@
 # Goal-Oriented Feedback Generation and Evaluation
 
-This is the code for the paper Improving the Validity of Automatically Generated Feedback via Reinforcement Learning.
-TODO: link to arxiv. We propose a rubric to evaluate feedback, use GPT-4 to evaluate a dataset of human and LM-generated feedback, and then use direct preference optimization (DPO) to generate higher-scoring feedback messages.
+This is the code for the paper [Improving the Validity of Automatically Generated Feedback via Reinforcement Learning](https://arxiv.org/abs/2403.01304). We propose a rubric for evaluating math feedback, use GPT-4 to evaluate a dataset of human and LM-generated feedback, and then use direct preference optimization (DPO) to generate higher-scoring feedback messages.
 
 ## Running
 
@@ -62,5 +61,12 @@ python3 eval_results.py data/raw/eedi_expanded_test.csv --metric llm --src og   
 ## Citation
 If you used our code or found this work useful in any way, please cite us!
 ```
-TODO arxiv citation
+@misc{scarlatos2024improving,
+      title={Improving the Validity of Automatically Generated Feedback via Reinforcement Learning}, 
+      author={Alexander Scarlatos and Digory Smith and Simon Woodhead and Andrew Lan},
+      year={2024},
+      eprint={2403.01304},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL}
+}
 ```
