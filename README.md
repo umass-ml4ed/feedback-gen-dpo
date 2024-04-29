@@ -25,7 +25,7 @@ python3 create_reward_dataset.py --annotate --model gpt-4
 
 ### Get Label Statistics and Agreement
 ```
-python3 analyze_reward_dataset.py
+python3 analyze_reward_dataset.py gpt4 ours --do_bertscore
 ```
 
 ### Train SFT Model
