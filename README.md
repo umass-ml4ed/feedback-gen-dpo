@@ -61,12 +61,15 @@ python3 eval_results.py data/raw/eedi_expanded_test.csv --metric llm --src og   
 ## Citation
 If you used our code or found this work useful in any way, please cite us!
 ```
-@misc{scarlatos2024improving,
-      title={Improving the Validity of Automatically Generated Feedback via Reinforcement Learning}, 
-      author={Alexander Scarlatos and Digory Smith and Simon Woodhead and Andrew Lan},
-      year={2024},
-      eprint={2403.01304},
-      archivePrefix={arXiv},
-      primaryClass={cs.CL}
+@InProceedings{scarlatos2024improving,
+      author="Scarlatos, Alexander and Smith, Digory and Woodhead, Simon and Lan, Andrew",
+      editor="Olney, Andrew M. and Chounta, Irene-Angelica and Liu, Zitao and Santos, Olga C. and Bittencourt, Ig Ibert",
+      title="Improving the Validity of Automatically Generated Feedback via Reinforcement Learning",
+      booktitle="Artificial Intelligence in Education",
+      year="2024",
+      publisher="Springer Nature Switzerland",
+      address="Cham",
+      pages="280--294",
+      isbn="978-3-031-64302-6"
 }
 ```
